@@ -300,6 +300,23 @@ input[type=color]{width:34px;height:34px;padding:0;border-radius:50%;border:2px 
  .bn.add i{font-size:30px;font-weight:300}
  .bn:active{transform:scale(.92)}
 }
+/* ===== Modo leve no celular (desempenho) ===== */
+@media(max-width:600px){
+ :root{--card:rgba(255,255,255,.72)}
+ button,.box,.item,input,textarea{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+ header,#msb,#bnav{backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%)}
+ #aurora i{animation:none;will-change:auto}
+ .box,.item{will-change:auto}
+ .box .bi,.logo span{animation:none}
+}
+@media(max-width:600px) and (prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:rgba(255,255,255,.1)}}
+@media(max-width:600px){:root[data-theme="dark"]{--card:rgba(255,255,255,.1)}}
+/* ===== Desligar efeito de vidro (opção nas configurações) ===== */
+html.noglass *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html.noglass{--card:rgba(255,255,255,.78)}
+@media(prefers-color-scheme:dark){html.noglass:not([data-theme="light"]){--card:rgba(255,255,255,.11)}}
+html.noglass[data-theme="dark"]{--card:rgba(255,255,255,.11)}
+html.noglass .m,html.noglass .stp{background:var(--bg)}
 </style>
 </head>
 <body>
@@ -695,7 +712,7 @@ async function boot(){
 }
 /* ===== Configurações (preferências no localStorage) ===== */
 let stEl=null,pt;
-const PDEF={wp:{type:'none',v:'',img:''},wpOp:100,wpBlur:false,theme:'auto',accent:'#6c5ce7',dens:'normal',font:'normal',anim:true,glass:false};
+const PDEF={wp:{type:'none',v:'',img:''},wpOp:100,wpBlur:false,theme:'auto',accent:'#6c5ce7',dens:'normal',font:'normal',anim:true,glass:false,noglass:false};
 let P=JSON.parse(JSON.stringify(PDEF));
 try{const x=JSON.parse(localStorage.getItem('mv_prefs'));if(x)P={...P,...x,wp:{...P.wp,...(x.wp||{})}}}catch(e){}
 function saveP(){try{localStorage.setItem('mv_prefs',JSON.stringify(P));return true}catch(e){toast('Sem espaço para salvar (imagem muito grande)');return false}}
@@ -721,7 +738,7 @@ function applyP(){
  if(String(P.accent).toLowerCase()===PDEF.accent){root.style.removeProperty('--ac');root.style.removeProperty('--onac')}
  else{root.style.setProperty('--ac',P.accent);const n=parseInt(P.accent.slice(1),16),l=(.299*(n>>16)+.587*(n>>8&255)+.114*(n&255))/255;root.style.setProperty('--onac',l>.65?'#1d1b26':'#fff')}
  root.dataset.dens=P.dens;root.dataset.font=P.font;root.style.setProperty('--fs',{sm:.9,normal:1,lg:1.12}[P.font]||1);
- root.classList.toggle('noanim',P.anim===false);root.classList.toggle('glass2',!!P.glass);
+ root.classList.toggle('noanim',P.anim===false);root.classList.toggle('glass2',!!P.glass);root.classList.toggle('noglass',!!P.noglass);
  markSel();
 }
 /* tema (botão do topo e configurações) */
@@ -732,7 +749,7 @@ function setTheme(t,anim){
 toggleTheme=function(){const dk=root.dataset.theme?root.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;setTheme(dk?'light':'dark',true)};
 /* animações desligadas: zera as animações em JS */
 const _an=Element.prototype.animate;
-Element.prototype.animate=function(k,o){if(P.anim===false)o=Object.assign({},typeof o==='number'?{duration:o}:o,{duration:0,delay:0});return _an.call(this,k,o)};
+Element.prototype.animate=function(k,o){if(P.anim===false)o=Object.assign({},typeof o==='number'?{duration:o}:o,{duration:0,delay:0});if(Array.isArray(k)&&matchMedia('(max-width:600px)').matches)k=k.map(f=>{const g={...f};delete g.filter;return g});return _an.call(this,k,o)};
 /* painel */
 const seg=(k,opts)=>'<div class="seg">'+opts.map(o=>'<button data-pk="'+k+'" data-pv="'+o[0]+'">'+o[1]+'</button>').join('')+'</div>';
 const tgl=(k,t,d)=>'<div class="srow"><div><b>'+t+'</b><span class="mu">'+d+'</span></div><button class="tgl" data-ptg="'+k+'" role="switch"><i></i></button></div>';
@@ -748,7 +765,7 @@ function buildSt(){
  +'<section><h3>🌓 Tema</h3>'+seg('theme',[['light','☀️ Claro'],['dark','🌙 Escuro'],['auto','🖥️ Auto']])+'</section>'
  +'<section><h3>🎨 Cor de destaque</h3><div class="cs-row">'+ACS.map(c=>'<button class="cs" style="background:'+c+'" data-pac="'+c+'"></button>').join('')+'<label class="cpk" title="Cor personalizada"><input type="color" id="acc"></label></div></section>'
  +'<section><h3>✨ Personalização</h3><label>Densidade</label>'+seg('dens',[['compact','Compacta'],['normal','Normal'],['spacious','Espaçada']])+'<label>Tamanho da fonte</label>'+seg('font',[['sm','Pequeno'],['normal','Normal'],['lg','Grande']])
- +tgl('anim','Animações','Movimentos e transições')+tgl('glass','Vidro intenso','Glassmorphism mais forte')+'</section>'
+ +tgl('anim','Animações','Movimentos e transições')+tgl('glass','Vidro intenso','Glassmorphism mais forte')+tgl('noglass','Desligar efeito de vidro','Mais leve e rápido (bom para celulares lentos)')+'</section>'
  +'<section><h3>💾 Dados</h3><div class="row"><button data-do="export">⬇ Exportar backup</button><button data-do="import">⬆ Importar backup</button></div><input type="file" id="bkf" accept="application/json,.json" class="hid">'
  +'<div class="row" style="margin-top:10px"><button data-do="resetp">Restaurar aparência</button><button data-do="clear" style="color:#e5484d">🗑 Limpar todos os dados</button></div><p class="mu" style="font-size:12px;margin:12px 0 0">As preferências ficam salvas neste aparelho e também vão dentro do backup.</p></section><section><h3>👤 Conta</h3><button data-a="logout">Sair da conta</button></section></div></aside>';
  document.body.appendChild(stEl);
