@@ -462,7 +462,7 @@ function itemForm(bid,pre){
  <label>Título</label><input id="ti" placeholder="Opcional">
  <div id="f-url"><label>Link / URL</label><input id="iu" value="${esc(pre.url||'')}" placeholder="https://…"></div>
  <div id="f-text"><label>Texto</label><textarea id="ix" rows="5"></textarea></div>
- <div id="f-file"><label>Arquivo do dispositivo</label><input id="if" type="file"></div>
+ <div id="f-file"><label>Arquivo do dispositivo</label><input id="if" type="file" accept="*/*,.apk,application/vnd.android.package-archive"></div>
  <label>Tags (separe por vírgula)</label><input id="ig" placeholder="viagem, ideia">
  <div class="row" style="margin-top:20px"><div class="sp"></div><button data-a="close">Cancelar</button><button class="pri" data-a="saveitem">Adicionar</button></div>`);
  modal.bid=bid;setType(t);
@@ -488,7 +488,7 @@ function detail(bid,id){
  modal(`<h2>${TYPES[i.type][0]} ${esc(i.title||'Sem título')}</h2>${med}
  ${i.url?`<p><a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.url)}</a></p>`:''}
  ${i.text?`<p style="white-space:pre-wrap">${esc(i.text)}</p>`:''}
- ${i.file_path&&i.type==='file'?`<p><button class="pri" data-a="dlfile" data-id="${i.id}" data-b="${bid}">⬇ Baixar ${esc(i.fname||'arquivo')}</button></p>`:i.data&&i.type==='file'?`<p><a href="${i.data}" download="${esc(i.fname)}">⬇ ${esc(i.fname)}</a> <span class="mu">(enviando…)</span></p>`:i.fname&&i.type==='file'?`<p class="mu">📄 ${esc(i.fname)} (arquivo grande: só o nome foi salvo)</p>`:''}
+ ${i.file_path&&i.type==='file'?`<p><button class="pri" data-a="dlfile" data-id="${i.id}" data-b="${bid}">⬇ Baixar ${esc(i.fname||'arquivo')}</button></p>`:i.data&&i.type==='file'?`<p><a href="${i.data}" download="${esc(i.fname)}">⬇ ${esc(i.fname)}</a> <span class="mu">(enviando…)</span></p>`:i.fname&&i.type==='file'?`<p class="mu">📄 ${esc(i.fname)} (o arquivo não foi enviado: só o nome foi salvo — provável limite de tamanho)</p>`:''}
  <label>Título</label><input id="ti" value="${esc(i.title)}"><label>Tags</label><input id="ig" value="${esc((i.tags||[]).join(', '))}">
  <p class="mu" style="font-size:12px">Adicionado em ${new Date(i.ts).toLocaleString('pt-BR')}</p>
  <div class="row"><button data-a="delitem" data-id="${id}" data-b="${bid}" style="color:#e5484d">Excluir</button><div class="sp"></div><button data-a="close">Fechar</button><button class="pri" data-a="upditem" data-id="${id}" data-b="${bid}">Salvar</button></div>`);
@@ -706,12 +706,17 @@ async function sync(){
    const r=boxRow(b,bi),j=JSON.stringify(r);cur.set('b:'+b.id,{j,path:null});
    if(!snap.has('b:'+b.id)||snap.get('b:'+b.id).j!==j)bu.push(r);
    for(const [ii,i] of b.items.entries()){
-    if(!i.file_path&&(i.blob||(i.data&&i.data.startsWith('data:')))){
-     const blob=i.blob||await (await fetch(i.data)).blob(),path=user.id+'/'+i.id;
-     const ct=/^(image|video|audio)\//.test(blob.type||'')?blob.type:'application/octet-stream'; /* APK e outros: tipo genérico, aceito pelo storage */
-     toast('Enviando '+(i.fname||'arquivo')+'…');
-     const up=await bkt().upload(path,blob,{upsert:true,contentType:ct});
-     if(up.error)throw up.error;i.file_path=path;delete i.blob;
+    if(!i.file_path&&!i.upfail&&(i.blob||(i.data&&i.data.startsWith('data:')))){
+     try{
+      const blob=i.blob||await (await fetch(i.data)).blob(),path=user.id+'/'+i.id;
+      const ct=/^(image|video|audio)\//.test(blob.type||'')?blob.type:'application/octet-stream'; /* APK e outros: tipo genérico, aceito pelo storage */
+      toast('Enviando '+(i.fname||'arquivo')+'…');
+      const up=await bkt().upload(path,blob,{upsert:true,contentType:ct});
+      if(up.error)throw up.error;i.file_path=path;delete i.blob;
+     }catch(er){
+      /* falha no envio não derruba a sincronização: o item é salvo mesmo assim */
+      i.upfail=1;toast('Arquivo "'+(i.fname||'')+'" não foi enviado: '+(er.message||er)+' (o item foi salvo só com o nome)');
+     }
     }
     const r2=itemRow(i,b.id,ii),j2=JSON.stringify(r2);cur.set('i:'+i.id,{j:j2,path:i.file_path||null});
     if(!snap.has('i:'+i.id)||snap.get('i:'+i.id).j!==j2)iu.push(r2);
