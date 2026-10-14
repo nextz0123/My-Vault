@@ -382,7 +382,7 @@ select:focus{border-color:var(--ac)}
 <header>
 <div class="logo" data-a="home">🗄️ Meu <span>Vault</span></div>
 <input id="q" placeholder="Buscar em tudo…" autocomplete="off">
-<button data-c="open" title="Corpo">💪</button><button data-a="settings" title="Configurações">⚙️</button><button data-a="theme" title="Tema">🌓</button><button data-a="logout" title="Sair">⎋</button>
+<button data-g="drive" title="Google Drive">☁️</button><button data-c="open" title="Corpo">💪</button><button data-a="settings" title="Configurações">⚙️</button><button data-a="theme" title="Tema">🌓</button><button data-a="logout" title="Sair">⎋</button>
 </header>
 <main id="main"></main>
 <button class="pri fab" data-a="quick">＋ Adicionar rápido</button>
@@ -460,7 +460,7 @@ function itemForm(bid,pre){
  <input type="hidden" id="it" value="${t}">
  <label>Caixa</label><div class="row" id="bsel">${S.boxes.map(b=>`<button class="chip ${b.id===bid?'on':''}" data-a="pickbox" data-b="${b.id}">${b.icon} ${esc(b.name)}</button>`).join('')}</div>
  <label>Título</label><input id="ti" placeholder="Opcional">
- <div id="f-url"><label>Link / URL</label><input id="iu" value="${esc(pre.url||'')}" placeholder="https://…"></div>
+ <div id="f-url"><label>Link / URL</label><input id="iu" value="${esc(pre.url||'')}" placeholder="https://…"><button data-g="drive" type="button" style="margin-top:8px;font-size:13px">☁️ Abrir Google Drive (arquivo grande? envie lá e cole o link)</button></div>
  <div id="f-text"><label>Texto</label><textarea id="ix" rows="5"></textarea></div>
  <div id="f-file"><label>Arquivo do dispositivo</label><input id="if" type="file" accept="*/*,.apk,application/vnd.android.package-archive"></div>
  <label>Tags (separe por vírgula)</label><input id="ig" placeholder="viagem, ideia">
@@ -952,6 +952,11 @@ document.addEventListener('click',e=>{
  else if(a==='box')boxForm();
  else if(a==='link'||a==='photo'){if(!first){toast('Crie uma caixa primeiro');boxForm()}else itemForm(first,{type:a})}
 });
+/* atalho para o Google Drive (abre em nova aba / app do Drive no celular) */
+document.addEventListener('click',e=>{
+ if(!e.target.closest('[data-g=drive]'))return;
+ e.preventDefault();window.open('https://drive.google.com/drive/my-drive','_blank','noopener,noreferrer');
+});
 /* baixar arquivo salvo (APK etc.): link assinado que força o download */
 document.addEventListener('click',async e=>{
  const t=e.target.closest('[data-a=dlfile]');if(!t)return;
@@ -1203,7 +1208,7 @@ render=function(){
  if(user&&m.dataset.view==='home'){
   const g=m.querySelector('.bento');
   if(g&&!g.querySelector('[data-c=open]')){
-   const h='<div class="box" style="--c:#30a46c" data-c="open"><div class="bi">💪</div><b>Corpo</b><span class="mu">Medidas e treinos</span></div>',nb=g.querySelector('.newbox');
+   const h='<div class="box" style="--c:#30a46c" data-c="open"><div class="bi">💪</div><b>Corpo</b><span class="mu">Medidas e treinos</span></div><div class="box" style="--c:#0091ff" data-g="drive"><div class="bi">☁️</div><b>Google Drive</b><span class="mu">Abrir atalho</span></div>',nb=g.querySelector('.newbox');
    if(nb)nb.insertAdjacentHTML('beforebegin',h);else g.insertAdjacentHTML('beforeend',h);
   }
  }
